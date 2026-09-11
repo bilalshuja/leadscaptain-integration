@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Leadscaptain\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Leadscaptain\Application\Services\LeadService;
+use Leadscaptain\Application\UseCases\FetchAllLeadsUseCase;
+use Leadscaptain\Console\Commands\FetchLeadsCommand;
 use Leadscaptain\Domain\Repositories\LeadRepositoryInterface;
 use Leadscaptain\Infrastructure\Http\LeadCaptainClient;
 use Leadscaptain\Infrastructure\Repositories\EloquentLeadRepository;
@@ -29,6 +32,9 @@ final class LeadscaptainServiceProvider extends ServiceProvider
                 concurrency: (int) config('leadscaptain.concurrency', 10)
             );
         });
+
+        $this->app->singleton(LeadService::class);
+        $this->app->singleton(FetchAllLeadsUseCase::class);
     }
 
     public function boot(): void
@@ -36,6 +42,10 @@ final class LeadscaptainServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(__DIR__ . '/../../database/migrations');
 
         if ($this->app->runningInConsole()) {
+            $this->commands([
+                FetchLeadsCommand::class,
+            ]);
+
             $this->publishes([
                 __DIR__ . '/../Config/leadscaptain.php' => config_path('leadscaptain.php'),
             ], 'leadscaptain-config');
