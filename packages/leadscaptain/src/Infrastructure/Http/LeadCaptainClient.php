@@ -52,8 +52,8 @@ final class LeadCaptainClient
             function (int $attempt) {
                    return match ($attempt) {
                     1 => 1000,
-                    2 => 2000,
-                    default => 4000,
+                    2 => 5000,
+                    default => 30000,
                 };
             },
             function (Throwable $exception) {
@@ -70,8 +70,8 @@ final class LeadCaptainClient
         ]);
 
         $duration = round(microtime(true) - $startTime, 4);
-
-        Log::channel('stderr')->info("Leadscaptain API request", [
+        $channel = (string) config('leadscaptain.log_channel', 'stderr');
+        Log::channel($channel)->info("Leadscaptain API request", [
             'page' => $page,
             'status' => $response->status(),
             'duration' => "{$duration}s",
@@ -117,7 +117,7 @@ final class LeadCaptainClient
                     $allResults[$pageNum] = $response->json();
                 } else {
                     $statusCode = $response instanceof Response ? $response->status() : 'unknown';
-                    Log::channel('stderr')->error("Failed concurrent fetch for page {$pageNum}", [
+                    Log::channel($logChannel)->error("Failed concurrent fetch for page {$pageNum}", [
                         'status' => $statusCode,
                     ]);
                 }

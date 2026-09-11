@@ -7,12 +7,23 @@ namespace Leadscaptain\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\DB;
 use Leadscaptain\Application\DTOs\LeadData;
 use Leadscaptain\Application\UseCases\FetchAllLeadsUseCase;
 use Leadscaptain\Domain\Repositories\LeadRepositoryInterface;
 
 final class LeadSyncController extends Controller
 {
+
+
+    public function index(): JsonResponse
+    {
+        $leads = DB::table('leads')
+            ->orderBy('created_at', 'desc')
+            ->paginate(50);
+
+        return response()->json($leads, 200);
+    }
     
     public function triggerSync(FetchAllLeadsUseCase $useCase): JsonResponse
     {

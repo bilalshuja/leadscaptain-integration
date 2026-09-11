@@ -8,6 +8,8 @@ use Leadscaptain\Http\Controllers\LeadSyncController;
 Route::prefix('api/leadscaptain')
     ->middleware(['api', 'throttle:60,1'])
     ->group(function () {
+
+        Route::get('/leads', [LeadSyncController::class, 'index'])->name('leadscaptain.leads.index');
         
         Route::post('/sync', [LeadSyncController::class, 'triggerSync'])->name('leadscaptain.sync');
         

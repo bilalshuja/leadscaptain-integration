@@ -13,4 +13,5 @@ return [
         'max_attempts' => (int) env('LEADSCAPTAIN_RATE_LIMIT', 60),
         'decay_seconds' => 60,
     ],
+    'channel' => env('LEADSCAPTAIN_LOG_CHANNEL', 'stderr'),
 ];
