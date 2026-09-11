@@ -1,0 +1,89 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: leadscaptain_app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - leadscaptain_net
+
+  nginx:
+    image: nginx:alpine
+    container_name: leadscaptain_nginx
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - .:/var/www/html
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - app
+    networks:
+      - leadscaptain_net
+
+  horizon:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: leadscaptain_horizon
+    restart: unless-stopped
+    working_dir: /var/www/html
+    command: php artisan horizon
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      - app
+      - redis
+    networks:
+      - leadscaptain_net
+
+  redis:
+    image: redis:7-alpine
+    container_name: leadscaptain_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - leadscaptain_net
+
+  db:
+    image: mysql:8.0
+    container_name: leadscaptain_db
+    restart: always
+    environment:
+      MYSQL_DATABASE: leadscaptain
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: bilal
+      MYSQL_PASSWORD: password
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_leadscaptain_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -proot_password"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - leadscaptain_net
+
+volumes:
+  mysql_leadscaptain_data:
+
+networks:
+  leadscaptain_net:
+    driver: bridge
