@@ -9,6 +9,7 @@ use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Redis;
 use RuntimeException;
 use Throwable;
 
@@ -19,11 +20,25 @@ final class LeadCaptainClient
         private readonly string $apiKey,
         private readonly int $timeout = 15,
         private readonly int $retryAttempts = 3,
-        private readonly int $concurrency = 10
+        private readonly int $concurrency = 10,
+        private readonly int $rateLimit = 60
     ) {}
 
-    
+
     public function fetchPage(int $page, int $perPage = 100): array
+    {
+        
+        return Redis::throttle('leadscaptain_api_throttle')
+            ->allow($this->rateLimit)
+            ->every(60)
+            ->then(
+                fn () => $this->executeFetchPage($page, $perPage),
+                fn () => throw new RuntimeException("Leadscaptain API rate limit exceeded in Redis throttle.")
+            );
+    }
+
+    
+    public function executeFetchPage(int $page, int $perPage): array
     {
         $startTime = microtime(true);
         $url = rtrim($this->baseUrl, '/') . '/leads';

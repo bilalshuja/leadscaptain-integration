@@ -5,12 +5,27 @@ declare(strict_types=1);
 namespace Leadscaptain\Tests\Feature;
 
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Redis;
 use Tests\TestCase;
 use Leadscaptain\Infrastructure\Http\LeadCaptainClient;
 use RuntimeException;
 
 final class LeadCaptainClientTest extends TestCase
+
 {
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        
+        try {
+            Redis::del('leadscaptain_api_throttle');
+        } catch (\Throwable) {
+          
+        }
+    }
+
+
     public function test_fetch_page_handles_429_adaptive_retry_successfully(): void
     {
         Http::fake([
@@ -82,5 +97,31 @@ final class LeadCaptainClientTest extends TestCase
 
         $this->expectException(RuntimeException::class);
         $client->fetchPage(1);
+    }
+
+    public function test_fetch_page_blocks_when_redis_rate_limit_exceeded(): void
+    {
+        Http::fake([
+            'https://api.leadscaptain.com/leads*' => Http::response(['data' => []], 200),
+        ]);
+
+        
+        $client = new LeadCaptainClient(
+            baseUrl: 'https://api.leadscaptain.com',
+            apiKey: 'test-api-key',
+            timeout: 5,
+            retryAttempts: 1,
+            rateLimit: 1
+        );
+
+       
+        $first = $client->fetchPage(1);
+        $this->assertIsArray($first);
+
+        // 2nd request immediately triggers Redis throttle circuit break
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Leadscaptain API rate limit exceeded in Redis throttle.');
+
+        $client->fetchPage(2);
     }
 }

@@ -29,7 +29,8 @@ final class LeadscaptainServiceProvider extends ServiceProvider
                 apiKey: (string) config('leadscaptain.api_key'),
                 timeout: (int) config('leadscaptain.timeout', 15),
                 retryAttempts: (int) config('leadscaptain.retry_times', 3),
-                concurrency: (int) config('leadscaptain.concurrency', 10)
+                concurrency: (int) config('leadscaptain.concurrency', 10),
+                rateLimit: (int) config('leadscaptain.rate_limit', 60)
             );
         });
 
