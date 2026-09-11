@@ -1,0 +1,70 @@
+name: CI & Quality Assurance
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  tests:
+    name: PHPUnit & Pest Tests
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: leadscaptain_test
+          MYSQL_ROOT_PASSWORD: root_password
+          MYSQL_USER: leadscaptain_user
+          MYSQL_PASSWORD: secret_password
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: --health-cmd="redis-cli ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_mysql, redis, pcntl, bcmath
+          coverage: none
+
+      - name: Copy .env
+        run: cp .env.example .env
+
+      - name: Install Composer Dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Generate App Key
+        run: php artisan key:generate
+
+      - name: Run Migrations
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: leadscaptain_test
+          DB_USERNAME: leadscaptain_user
+          DB_PASSWORD: secret_password
+        run: php artisan migrate --force
+
+      - name: Execute Test Suite
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: leadscaptain_test
+          DB_USERNAME: leadscaptain_user
+          DB_PASSWORD: secret_password
+          REDIS_HOST: 127.0.0.1
+          REDIS_PORT: 6379
+        run: php artisan test --parallel
