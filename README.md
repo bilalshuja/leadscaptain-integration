@@ -29,38 +29,104 @@ High-throughput, resilient Laravel 12 integration package for the Leadscaptain A
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-## 🛠 Tech Stack
-- **PHP 8.4-FPM** with strict types and readonly classes
-- **Laravel 12**
-- **Laravel Horizon** on Redis 7
-- **MySQL 8.0** with chunked idempotent bulk upserts
-- **Roadrunner** application runtime
-- **Docker Compose** containerized environment
+## 🛠 Local Development Setup
 
-## 📦 Key Implementation Features
-- **Concurrent Ingestion:** Uses Laravel `Http::pool()` and dynamic chunking to maximize throughput without exceeding API rate limits.
-- **Resilient Retry & Backoff:** Implements exponential backoff (1s, 2s, 4s) targeting HTTP 429 and 5xx responses.
-- **Idempotency:** Unique indexing on `external_id` combined with bulk `ON DUPLICATE KEY UPDATE` queries eliminates duplicate entries.
-- **Zero Event-Loop Blocking:** CLI (`php artisan leadscaptain:fetch-leads`) and REST trigger (`POST /api/leadscaptain/sync`) dispatch asynchronously to Horizon's dedicated `leads` queue.
-
-## ⚡ Quickstart
+Prerequisites: **Docker** & **Docker Compose**.
 
 ```bash
-# 1. Spin up the containers
+# 1. Clone the repository
+git clone [https://github.com/bilalshuja/leadscaptain-integration.git](https://github.com/bilalshuja/leadscaptain-integration.git)
+cd leadscaptain-integration
+
+# 2. Setup environment configuration
+cp .env.example .env
+
+# 3. Start Docker services (PHP 8.4, MySQL 8.0, Redis 7)
 docker compose up -d
 
-# 2. Run database migrations
+# 4. Install dependencies
+docker compose exec app composer install
+
+# 5. Generate application key
+docker compose exec app php artisan key:generate
+
+# 6. Run database migrations
 docker compose exec app php artisan migrate
+```
 
-# 3. Execute the comprehensive test suite
-docker compose exec app php artisan test
+## ⚙️ Configuration Reference
 
-# 4. Trigger lead ingestion via CLI
+Add these variables to your `.env` file to configure package behavior:
+
+| Variable | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `LEADSCAPTAIN_BASE_URL` | string | `https://api.leadscaptain.com` | Base URL of the remote API |
+| `LEADSCAPTAIN_API_KEY` | string | `null` | API authentication key |
+| `LEADSCAPTAIN_TIMEOUT` | int | `15` | Request timeout in seconds |
+| `LEADSCAPTAIN_RETRY_TIMES` | int | `3` | Maximum retry attempts for 429/5xx |
+| `LEADSCAPTAIN_CONCURRENCY` | int | `10` | Concurrent request pool limit |
+| `LEADSCAPTAIN_PER_PAGE` | int | `100` | Number of leads fetched per page |
+| `LEADSCAPTAIN_RATE_LIMIT` | int | `60` | Webhook / API throttle per minute |
+
+## 💻 Usage Examples
+
+### 1. Artisan CLI Command
+Run lead ingestion in background queue:
+```bash
 docker compose exec app php artisan leadscaptain:fetch-leads
 ```
 
+### 2. Programmatic Job Dispatch
+Trigger synchronization from your own code or scheduler:
+```php
+use Leadscaptain\Infrastructure\Jobs\FetchLeadsJob;
+
+// Dispatches the master orchestrator to the dedicated Horizon queue
+FetchLeadsJob::dispatch();
+```
+
+Or invoke the use case directly:
+```php
+use Leadscaptain\Application\UseCases\FetchAllLeadsUseCase;
+
+app(FetchAllLeadsUseCase::class)->execute();
+```
+
+### 3. REST API & Webhook Endpoints
+
+**Trigger Background Sync (Asynchronous):**
+```bash
+curl -X POST http://localhost:8000/api/leadscaptain/sync \
+  -H "Accept: application/json"
+```
+*Response (202 Accepted):*
+```json
+{
+  "status": "success",
+  "message": "Sync queued successfully on [leads] queue."
+}
+```
+
+**Real-Time Webhook Ingestion:**
+```bash
+curl -X POST http://localhost:8000/api/leadscaptain/webhook \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{
+    "event": "lead.created",
+    "data": {
+      "id": "lead_999",
+      "email": "developer@leadscaptain.com",
+      "name": "Jane Doe",
+      "metadata": {"source": "adwords", "score": 85},
+      "created_at": "2026-09-11T12:00:00+00:00"
+    }
+  }'
+```
+
 ## 🧪 Testing Suite
-Run all unit and integration tests:
+
+Execute the test suite inside the container:
 ```bash
 docker compose exec app php artisan test packages/leadscaptain/Tests
 ```
