@@ -27,11 +27,29 @@ final class LeadCaptainClient
 
     public function getTotalPages(int $perPage = 100, int $ttlSeconds = 300): int
     {
-
         return (int) Cache::store('redis')->remember('leadscaptain:total_pages', $ttlSeconds, function () use ($perPage) {
             $response = $this->fetchPage(1, $perPage);
 
-            return (int) ($response['meta']['last_page'] ?? 1);
+            if (isset($response['total_pages']) && is_numeric($response['total_pages'])) {
+                $pages = (int) $response['total_pages'];
+
+                return $pages > 0 ? $pages : 1;
+            }
+
+            if (isset($response['meta']['last_page']) && is_numeric($response['meta']['last_page'])) {
+                $pages = (int) $response['meta']['last_page'];
+
+                return $pages > 0 ? $pages : 1;
+            }
+
+            $total = (int) ($response['total'] ?? 0);
+            $limit = (int) ($response['limit'] ?? $perPage);
+
+            if ($total > 0 && $limit > 0) {
+                return (int) ceil($total / $limit);
+            }
+
+            return 1;
         });
     }
 
@@ -78,7 +96,7 @@ final class LeadCaptainClient
             )
             ->get($url, [
                 'page' => $page,
-                'per_page' => $perPage,
+                'limit' => $perPage,
             ]);
 
         $duration = round(microtime(true) - $startTime, 4);
@@ -116,7 +134,7 @@ final class LeadCaptainClient
                         ->timeout($this->timeout)
                         ->get(rtrim($this->baseUrl, '/').'/leads', [
                             'page' => $page,
-                            'per_page' => $perPage,
+                            'limit' => $perPage,
                         ]);
                 }, $chunk);
             });

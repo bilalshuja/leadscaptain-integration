@@ -58,11 +58,11 @@ final class LeadCaptainClientTest extends TestCase
     public function test_fetch_pages_concurrently_pools_requests_with_concurrency_limit(): void
     {
         Http::fake([
-            'https://api.leadscaptain.com/leads?page=2&per_page=100' => Http::response([
-                'data' => [['id' => 'lead_p2']],
+            'https://api.leadscaptain.com/leads?page=2&limit=100' => Http::response([
+                'data' => [['key' => 'lead_p2']],
             ], 200),
-            'https://api.leadscaptain.com/leads?page=3&per_page=100' => Http::response([
-                'data' => [['id' => 'lead_p3']],
+            'https://api.leadscaptain.com/leads?page=3&limit=100' => Http::response([
+                'data' => [['key' => 'lead_p3']],
             ], 200),
         ]);
 
@@ -72,7 +72,7 @@ final class LeadCaptainClientTest extends TestCase
             concurrency: 2
         );
 
-        $results = $client->fetchPagesConcurrently([2, 3]);
+        $results = $client->fetchPagesConcurrently([2, 3], 100);
 
         $this->assertCount(2, $results);
         $this->assertArrayHasKey(2, $results);
