@@ -38,12 +38,16 @@ final class LeadSyncController extends Controller
         $validated = $request->validate([
             'event' => ['required', 'string'],
             'data' => ['required', 'array'],
-            'data.id' => ['required', 'string'],
-            'data.email' => ['nullable', 'string'],
-            'data.name' => ['nullable', 'string'],
-            'data.metadata' => ['nullable', 'array'],
-            'data.created_at' => ['nullable', 'string'],
         ]);
+
+        $id = $validated['data']['key'] ?? $validated['data']['id'] ?? $validated['data']['leadscaptain_public_identifier'] ?? null;
+
+        if (empty($id)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'The data payload must contain a valid key, id, or leadscaptain_public_identifier.',
+            ], 422);
+        }
 
         $leadDto = LeadData::fromArray($validated['data']);
         $repository->upsertBatch([$leadDto->toDomain()]);

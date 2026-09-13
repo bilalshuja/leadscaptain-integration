@@ -72,7 +72,7 @@ final class LeadCaptainClient
 
         $response = Http::withHeaders([
             'Authorization' => 'Bearer '.$this->apiKey,
-            'X-API-Key' => $this->apiKey,
+            'X-API-Token' => $this->apiKey,
             'Accept' => 'application/json',
         ])
             ->timeout($this->timeout)
@@ -128,7 +128,7 @@ final class LeadCaptainClient
                     return $pool
                         ->withHeaders([
                             'Authorization' => 'Bearer '.$this->apiKey,
-                            'X-API-Key' => $this->apiKey,
+                            'X-API-Token' => $this->apiKey,
                             'Accept' => 'application/json',
                         ])
                         ->timeout($this->timeout)
