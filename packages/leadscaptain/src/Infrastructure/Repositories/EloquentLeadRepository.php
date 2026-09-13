@@ -22,12 +22,16 @@ final class EloquentLeadRepository implements LeadRepositoryInterface
 
         $records = array_map(static fn (Lead $lead) => $lead->toDatabaseArray(), $leads);
 
-        // Chunking in batches of 500 to keep memory and SQL payload optimized
+        $updateColumns = array_values(array_diff(
+            array_keys($records[0]),
+            ['external_id', 'id']
+        ));
+
         foreach (array_chunk($records, 500) as $chunk) {
             DB::table('leads')->upsert(
                 $chunk,
                 ['external_id'],
-                ['email', 'name', 'metadata', 'remote_created_at', 'updated_at']
+                $updateColumns
             );
         }
     }
