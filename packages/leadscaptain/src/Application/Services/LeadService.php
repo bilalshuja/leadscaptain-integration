@@ -27,7 +27,7 @@ final class LeadService
         $pageOne = $this->client->fetchPage(1, $perPage);
         $this->processPageData(1, $pageOne['data'] ?? []);
 
-        $lastPage = (int) ($pageOne['meta']['last_page'] ?? 1);
+        $lastPage = (int) ($pageOne['total_pages'] ?? $pageOne['meta']['last_page'] ?? 1);
         Cache::store('redis')->put('leadscaptain:total_pages', $lastPage, now()->addMinutes(30));
 
         if ($lastPage <= 1) {
