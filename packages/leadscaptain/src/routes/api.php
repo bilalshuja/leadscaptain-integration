@@ -10,8 +10,8 @@ Route::prefix('api/leadscaptain')
     ->group(function () {
 
         Route::get('/leads', [LeadSyncController::class, 'index'])->name('leadscaptain.leads.index');
-        
+
         Route::post('/sync', [LeadSyncController::class, 'triggerSync'])->name('leadscaptain.sync');
-        
+
         Route::post('/webhook', [LeadSyncController::class, 'handleWebhook'])->name('leadscaptain.webhook');
     });

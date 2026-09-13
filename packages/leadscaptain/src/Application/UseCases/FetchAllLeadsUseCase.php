@@ -10,7 +10,7 @@ final readonly class FetchAllLeadsUseCase
 {
     public function execute(): void
     {
-        
+
         FetchLeadsJob::dispatch()->onQueue('leads');
     }
 }

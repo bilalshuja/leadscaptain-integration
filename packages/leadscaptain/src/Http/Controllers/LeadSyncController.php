@@ -14,8 +14,6 @@ use Leadscaptain\Domain\Repositories\LeadRepositoryInterface;
 
 final class LeadSyncController extends Controller
 {
-
-
     public function index(): JsonResponse
     {
         $leads = DB::table('leads')
@@ -24,7 +22,7 @@ final class LeadSyncController extends Controller
 
         return response()->json($leads, 200);
     }
-    
+
     public function triggerSync(FetchAllLeadsUseCase $useCase): JsonResponse
     {
         $useCase->execute();
@@ -35,10 +33,9 @@ final class LeadSyncController extends Controller
         ], 202);
     }
 
-    
-    public function handleWebhook(Request $request, LeadRepositoryInterface$repository): JsonResponse
+    public function handleWebhook(Request $request, LeadRepositoryInterface $repository): JsonResponse
     {
-        $validated =$request->validate([
+        $validated = $request->validate([
             'event' => ['required', 'string'],
             'data' => ['required', 'array'],
             'data.id' => ['required', 'string'],

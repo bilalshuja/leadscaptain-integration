@@ -47,7 +47,6 @@ final class LeadService
             ->dispatch();
     }
 
-    
     public function processPageData(int $page, array $rawItems): void
     {
         $entities = [];
@@ -56,7 +55,7 @@ final class LeadService
             $entities[] = $dto->toDomain();
         }
 
-        if (!empty($entities)) {
+        if (! empty($entities)) {
             $this->repository->upsertBatch($entities);
         }
 

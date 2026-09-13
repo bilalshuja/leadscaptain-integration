@@ -9,7 +9,6 @@ use Leadscaptain\Domain\Entities\Lead;
 
 final readonly class LeadData
 {
-    
     public function __construct(
         public string $id,
         public ?string $email,
@@ -18,7 +17,6 @@ final readonly class LeadData
         public ?string $createdAt = null
     ) {}
 
-    
     public static function fromArray(array $data): self
     {
         return new self(

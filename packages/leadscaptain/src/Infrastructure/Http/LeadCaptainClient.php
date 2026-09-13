@@ -7,6 +7,7 @@ namespace Leadscaptain\Infrastructure\Http;
 use Illuminate\Http\Client\Pool;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redis;
@@ -24,60 +25,71 @@ final class LeadCaptainClient
         private readonly int $rateLimit = 60
     ) {}
 
+    public function getTotalPages(int $perPage = 100, int $ttlSeconds = 300): int
+    {
+
+        return (int) Cache::store('redis')->remember('leadscaptain:total_pages', $ttlSeconds, function () use ($perPage) {
+            $response = $this->fetchPage(1, $perPage);
+
+            return (int) ($response['meta']['last_page'] ?? 1);
+        });
+    }
 
     public function fetchPage(int $page, int $perPage = 100): array
     {
-        
+
         return Redis::throttle('leadscaptain_api_throttle')
             ->allow($this->rateLimit)
             ->every(60)
             ->then(
                 fn () => $this->executeFetchPage($page, $perPage),
-                fn () => throw new RuntimeException("Leadscaptain API rate limit exceeded in Redis throttle.")
+                fn () => throw new RuntimeException('Leadscaptain API rate limit exceeded in Redis throttle.')
             );
     }
 
-    
     public function executeFetchPage(int $page, int $perPage): array
     {
         $startTime = microtime(true);
-        $url = rtrim($this->baseUrl, '/') . '/leads';
+        $url = rtrim($this->baseUrl, '/').'/leads';
 
         $response = Http::withHeaders([
+            'Authorization' => 'Bearer '.$this->apiKey,
             'X-API-Key' => $this->apiKey,
             'Accept' => 'application/json',
         ])
-        ->timeout($this->timeout)
-        ->retry( $this->retryAttempts,
-            function (int $attempt) {
-                   return match ($attempt) {
-                    1 => 1000,
-                    2 => 5000,
-                    default => 30000,
-                };
-            },
-            function (Throwable $exception) {
-                if ($exception instanceof RequestException) {
-                    $status = $exception->response->status();
-                    return $status === 429 || $status >= 500;
+            ->timeout($this->timeout)
+            ->retry($this->retryAttempts,
+                function (int $attempt) {
+                    return match ($attempt) {
+                        1 => 1000,
+                        2 => 5000,
+                        default => 30000,
+                    };
+                },
+                function (Throwable $exception) {
+                    if ($exception instanceof RequestException) {
+                        $status = $exception->response->status();
+
+                        return $status === 429 || $status >= 500;
+                    }
+
+                    return true;
                 }
-                return true;
-            }
-        )
-        ->get($url, [
-            'page' => $page,
-            'per_page' => $perPage,
-        ]);
+            )
+            ->get($url, [
+                'page' => $page,
+                'per_page' => $perPage,
+            ]);
 
         $duration = round(microtime(true) - $startTime, 4);
         $channel = (string) config('leadscaptain.log_channel', 'stderr');
-        Log::channel($channel)->info("Leadscaptain API request", [
+        Log::channel($channel)->info('Leadscaptain API request', [
             'page' => $page,
             'status' => $response->status(),
             'duration' => "{$duration}s",
         ]);
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             throw new RuntimeException("API error on page {$page}: HTTP {$response->status()}");
         }
 
@@ -86,9 +98,7 @@ final class LeadCaptainClient
 
     /**
      * using Http::pool
-
      */
-    
     public function fetchPagesConcurrently(array $pages, int $perPage = 100): array
     {
         $chunks = array_chunk($pages, $this->concurrency);
@@ -99,11 +109,12 @@ final class LeadCaptainClient
                 return array_map(function (int $page) use ($pool, $perPage) {
                     return $pool
                         ->withHeaders([
+                            'Authorization' => 'Bearer '.$this->apiKey,
                             'X-API-Key' => $this->apiKey,
                             'Accept' => 'application/json',
                         ])
                         ->timeout($this->timeout)
-                        ->get(rtrim($this->baseUrl, '/') . '/leads', [
+                        ->get(rtrim($this->baseUrl, '/').'/leads', [
                             'page' => $page,
                             'per_page' => $perPage,
                         ]);
@@ -117,7 +128,8 @@ final class LeadCaptainClient
                     $allResults[$pageNum] = $response->json();
                 } else {
                     $statusCode = $response instanceof Response ? $response->status() : 'unknown';
-                    Log::channel($logChannel)->error("Failed concurrent fetch for page {$pageNum}", [
+                    $channel = (string) config('leadscaptain.log_channel', 'stderr');
+                    Log::channel($channel)->error("Failed concurrent fetch for page {$pageNum}", [
                         'status' => $statusCode,
                     ]);
                 }

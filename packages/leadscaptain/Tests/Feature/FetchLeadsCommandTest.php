@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Leadscaptain\Tests\Feature;
 
 use Illuminate\Support\Facades\Queue;
-use Tests\TestCase;
 use Leadscaptain\Infrastructure\Jobs\FetchLeadsJob;
+use Tests\TestCase;
 
 final class FetchLeadsCommandTest extends TestCase
 {

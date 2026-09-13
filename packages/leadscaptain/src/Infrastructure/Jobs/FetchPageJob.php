@@ -11,8 +11,10 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
 use Leadscaptain\Application\Services\LeadService;
 use Leadscaptain\Infrastructure\Http\LeadCaptainClient;
+use Leadscaptain\Infrastructure\Notifications\LeadFetchFailedNotification;
 use Throwable;
 
 final class FetchPageJob implements ShouldQueue
@@ -20,6 +22,7 @@ final class FetchPageJob implements ShouldQueue
     use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 3;
+
     public int $timeout = 60;
 
     public function __construct(
@@ -48,6 +51,29 @@ final class FetchPageJob implements ShouldQueue
 
             throw $e;
         }
+    }
+
+    public function failed(Throwable $exception): void
+    {
+        $logChannel = (string) config('leadscaptain.channel', config('leadscaptain.log_channel', 'leadscaptain'));
+        $batchId = $this->batchId ?? $this->batch()?->id;
+
+        Log::channel($logChannel)->critical("Page {$this->page} permanently failed after all retries.", [
+            'page' => $this->page,
+            'batch_id' => $batchId,
+            'error' => $exception->getMessage(),
+        ]);
+
+        $this->batch()?->cancel();
+
+        $alertEmail = (string) config('leadscaptain.alert_email', env('MAIL_FROM_ADDRESS'));
+
+        Notification::route('mail', $alertEmail)
+            ->notify(new LeadFetchFailedNotification(
+                page: $this->page,
+                errorMessage: $exception->getMessage(),
+                batchId: $batchId
+            ));
     }
 
     /**

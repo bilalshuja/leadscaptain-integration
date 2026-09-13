@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Leadscaptain\Tests\Unit;
 
-use PHPUnit\Framework\TestCase;
 use Leadscaptain\Application\DTOs\LeadData;
+use PHPUnit\Framework\TestCase;
 
 final class LeadDataDtoTest extends TestCase
 {

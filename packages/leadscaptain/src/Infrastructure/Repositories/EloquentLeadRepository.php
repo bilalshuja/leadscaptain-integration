@@ -12,7 +12,7 @@ use Leadscaptain\Domain\Repositories\LeadRepositoryInterface;
 final class EloquentLeadRepository implements LeadRepositoryInterface
 {
     /**
-     * @param array<Lead> $leads
+     * @param  array<Lead>  $leads
      */
     public function upsertBatch(array $leads): void
     {
@@ -36,7 +36,7 @@ final class EloquentLeadRepository implements LeadRepositoryInterface
     {
         $record = DB::table('leads')->where('external_id', $externalId)->first();
 
-        if (!$record) {
+        if (! $record) {
             return null;
         }
 

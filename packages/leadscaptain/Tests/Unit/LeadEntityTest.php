@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Leadscaptain\Tests\Unit;
 
 use DateTimeImmutable;
-use PHPUnit\Framework\TestCase;
 use Leadscaptain\Domain\Entities\Lead;
+use PHPUnit\Framework\TestCase;
 
 final class LeadEntityTest extends TestCase
 {

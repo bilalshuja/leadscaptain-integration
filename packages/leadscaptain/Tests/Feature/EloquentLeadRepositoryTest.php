@@ -6,9 +6,9 @@ namespace Leadscaptain\Tests\Feature;
 
 use DateTimeImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
 use Leadscaptain\Domain\Entities\Lead;
 use Leadscaptain\Infrastructure\Repositories\EloquentLeadRepository;
+use Tests\TestCase;
 
 final class EloquentLeadRepositoryTest extends TestCase
 {
@@ -16,7 +16,7 @@ final class EloquentLeadRepositoryTest extends TestCase
 
     public function test_upsert_batch_inserts_and_updates_idempotently(): void
     {
-        $repository = new EloquentLeadRepository();
+        $repository = new EloquentLeadRepository;
 
         $leadsInitial = [
             new Lead('lead_1', 'lead1@example.com', 'Initial Name', ['score' => 10], new DateTimeImmutable('2026-09-11 10:00:00')),

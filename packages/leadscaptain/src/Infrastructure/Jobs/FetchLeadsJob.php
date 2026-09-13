@@ -16,6 +16,7 @@ final class FetchLeadsJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 1;
+
     public int $timeout = 180;
 
     public function __construct()

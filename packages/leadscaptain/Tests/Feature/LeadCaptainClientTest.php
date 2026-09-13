@@ -6,25 +6,22 @@ namespace Leadscaptain\Tests\Feature;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Redis;
-use Tests\TestCase;
 use Leadscaptain\Infrastructure\Http\LeadCaptainClient;
 use RuntimeException;
+use Tests\TestCase;
 
 final class LeadCaptainClientTest extends TestCase
-
 {
-
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         try {
             Redis::del('leadscaptain_api_throttle');
         } catch (\Throwable) {
-          
+
         }
     }
-
 
     public function test_fetch_page_handles_429_adaptive_retry_successfully(): void
     {
@@ -33,7 +30,7 @@ final class LeadCaptainClientTest extends TestCase
                 ->push(['error' => 'Too Many Requests'], 429)
                 ->push([
                     'data' => [
-                        ['id' => 'lead_100', 'email' => 'client@leadscaptain.com', 'name' => 'Lead Client']
+                        ['id' => 'lead_100', 'email' => 'client@leadscaptain.com', 'name' => 'Lead Client'],
                     ],
                     'meta' => [
                         'current_page' => 1,
@@ -62,10 +59,10 @@ final class LeadCaptainClientTest extends TestCase
     {
         Http::fake([
             'https://api.leadscaptain.com/leads?page=2&per_page=100' => Http::response([
-                'data' => [['id' => 'lead_p2']]
+                'data' => [['id' => 'lead_p2']],
             ], 200),
             'https://api.leadscaptain.com/leads?page=3&per_page=100' => Http::response([
-                'data' => [['id' => 'lead_p3']]
+                'data' => [['id' => 'lead_p3']],
             ], 200),
         ]);
 
@@ -105,7 +102,6 @@ final class LeadCaptainClientTest extends TestCase
             'https://api.leadscaptain.com/leads*' => Http::response(['data' => []], 200),
         ]);
 
-        
         $client = new LeadCaptainClient(
             baseUrl: 'https://api.leadscaptain.com',
             apiKey: 'test-api-key',
@@ -114,7 +110,6 @@ final class LeadCaptainClientTest extends TestCase
             rateLimit: 1
         );
 
-       
         $first = $client->fetchPage(1);
         $this->assertIsArray($first);
 

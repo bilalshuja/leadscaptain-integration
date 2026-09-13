@@ -17,7 +17,7 @@ final class LeadscaptainServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->mergeConfigFrom(
-            __DIR__ . '/../Config/leadscaptain.php',
+            __DIR__.'/../Config/leadscaptain.php',
             'leadscaptain'
         );
 
@@ -40,8 +40,8 @@ final class LeadscaptainServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        $this->loadRoutesFrom(__DIR__ . '/../routes/api.php');
-        $this->loadMigrationsFrom(__DIR__ . '/../../database/migrations');
+        $this->loadRoutesFrom(__DIR__.'/../routes/api.php');
+        $this->loadMigrationsFrom(__DIR__.'/../../database/migrations');
 
         if ($this->app->runningInConsole()) {
             $this->commands([
@@ -49,11 +49,11 @@ final class LeadscaptainServiceProvider extends ServiceProvider
             ]);
 
             $this->publishes([
-                __DIR__ . '/../Config/leadscaptain.php' => config_path('leadscaptain.php'),
+                __DIR__.'/../Config/leadscaptain.php' => config_path('leadscaptain.php'),
             ], 'leadscaptain-config');
 
             $this->publishes([
-                __DIR__ . '/../../database/migrations/' => database_path('migrations'),
+                __DIR__.'/../../database/migrations/' => database_path('migrations'),
             ], 'leadscaptain-migrations');
         }
     }
