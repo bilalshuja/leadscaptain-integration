@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "3f21f5710c40038a5a02dc565ed59a92",
+    "content-hash": "2cd1888055af97d3fb8286020863da35",
     "packages": [
         {
             "name": "brick/math",
@@ -1606,6 +1606,44 @@
                 "source": "https://github.com/laravel/tinker/tree/v2.11.1"
             },
             "time": "2026-02-06T14:12:35+00:00"
+        },
+        {
+            "name": "leadscaptain/laravel-integration",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "packages/leadscaptain",
+                "reference": "c2f42e18088337d38147b352494ab9f6d20a9623"
+            },
+            "require": {
+                "illuminate/bus": "^12.0",
+                "illuminate/database": "^12.0",
+                "illuminate/http": "^12.0",
+                "illuminate/queue": "^12.0",
+                "illuminate/support": "^12.0",
+                "php": "^8.4"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Leadscaptain\\Providers\\LeadscaptainServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Leadscaptain\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Enterprise Leadscaptain API Integration Package",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
         },
         {
             "name": "league/commonmark",
@@ -8524,7 +8562,9 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {},
+    "stability-flags": {
+        "leadscaptain/laravel-integration": 20
+    },
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {

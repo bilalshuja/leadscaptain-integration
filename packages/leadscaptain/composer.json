@@ -1,6 +1,7 @@
 {
     "name": "leadscaptain/laravel-integration",
     "description": "Enterprise Leadscaptain API Integration Package",
+    "version": "1.0.0",
     "type": "library",
     "license": "MIT",
     "require": {

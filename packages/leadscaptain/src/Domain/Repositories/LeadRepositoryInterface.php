@@ -9,7 +9,7 @@ use Leadscaptain\Domain\Entities\Lead;
 interface LeadRepositoryInterface
 {
     /**
-     * @param array<Lead> $leads
+     * @param  array<Lead>  $leads
      */
     public function upsertBatch(array $leads): void;
 

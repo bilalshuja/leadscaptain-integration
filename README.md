@@ -1,59 +1,132 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Leadscaptain Enterprise Laravel Integration
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+High-throughput, resilient Laravel 12 integration package for the Leadscaptain API built according to Domain-Driven Design (Onion Architecture) principles.
 
-## About Laravel
+## 🚀 Architectural Overview
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+```
+                        [ Leadscaptain API ]
+                                 ▲
+                                 │ HTTP Pool (Adaptive Backoff & Rate Limit)
+                                 ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    Infrastructure Layer                         │
+│  LeadCaptainClient ◄──► Horizon Batched Jobs (FetchPageJob)    │
+│  EloquentLeadRepository (MySQL Bulk Upsert: 500 records/chunk)  │
+└────────────────────────────────┬────────────────────────────────┘
+                                 ▲
+                                 │
+┌────────────────────────────────┴────────────────────────────────┐
+│                     Application Layer                           │
+│  LeadService ◄──► FetchAllLeadsUseCase ◄──► LeadData DTO        │
+└────────────────────────────────┬────────────────────────────────┘
+                                 ▲
+                                 │
+┌────────────────────────────────┴────────────────────────────────┐
+│                        Domain Layer                             │
+│  Lead Entity (Readonly, PHP 8.4) ◄──► LeadRepositoryInterface  │
+│  Domain Event: LeadsFetched                                     │
+└─────────────────────────────────────────────────────────────────┘
+```
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## 🛠 Local Development Setup
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Prerequisites: **Docker** & **Docker Compose**.
 
-## Learning Laravel
+```bash
+# 1. Clone the repository
+git clone [https://github.com/bilalshuja/leadscaptain-integration.git](https://github.com/bilalshuja/leadscaptain-integration.git)
+cd leadscaptain-integration
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+# 2. Setup environment configuration
+cp .env.example .env
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+# 3. Start Docker services (PHP 8.4, MySQL 8.0, Redis 7)
+docker compose up -d
 
-## Laravel Sponsors
+# 4. Install dependencies
+docker compose exec app composer install
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+# 5. Generate application key
+docker compose exec app php artisan key:generate
 
-### Premium Partners
+# 6. Run database migrations
+docker compose exec app php artisan migrate
+```
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+## ⚙️ Configuration Reference
 
-## Contributing
+Add these variables to your `.env` file to configure package behavior:
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+| Variable | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `LEADSCAPTAIN_BASE_URL` | string | `https://api.leadscaptain.com` | Base URL of the remote API |
+| `LEADSCAPTAIN_API_KEY` | string | `null` | API authentication key |
+| `LEADSCAPTAIN_TIMEOUT` | int | `15` | Request timeout in seconds |
+| `LEADSCAPTAIN_RETRY_TIMES` | int | `3` | Maximum retry attempts for 429/5xx |
+| `LEADSCAPTAIN_CONCURRENCY` | int | `10` | Concurrent request pool limit |
+| `LEADSCAPTAIN_PER_PAGE` | int | `100` | Number of leads fetched per page |
+| `LEADSCAPTAIN_RATE_LIMIT` | int | `60` | Webhook / API throttle per minute |
 
-## Code of Conduct
+## 💻 Usage Examples
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### 1. Artisan CLI Command
+Run lead ingestion in background queue:
+```bash
+docker compose exec app php artisan leadscaptain:fetch-leads
+```
 
-## Security Vulnerabilities
+### 2. Programmatic Job Dispatch
+Trigger synchronization from your own code or scheduler:
+```php
+use Leadscaptain\Infrastructure\Jobs\FetchLeadsJob;
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+// Dispatches the master orchestrator to the dedicated Horizon queue
+FetchLeadsJob::dispatch();
+```
 
-## License
+Or invoke the use case directly:
+```php
+use Leadscaptain\Application\UseCases\FetchAllLeadsUseCase;
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+app(FetchAllLeadsUseCase::class)->execute();
+```
+
+### 3. REST API & Webhook Endpoints
+
+**Trigger Background Sync (Asynchronous):**
+```bash
+curl -X POST http://localhost:8000/api/leadscaptain/sync \
+  -H "Accept: application/json"
+```
+*Response (202 Accepted):*
+```json
+{
+  "status": "success",
+  "message": "Sync queued successfully on [leads] queue."
+}
+```
+
+**Real-Time Webhook Ingestion:**
+```bash
+curl -X POST http://localhost:8000/api/leadscaptain/webhook \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{
+    "event": "lead.created",
+    "data": {
+      "id": "lead_999",
+      "email": "developer@leadscaptain.com",
+      "name": "Jane Doe",
+      "metadata": {"source": "adwords", "score": 85},
+      "created_at": "2026-09-11T12:00:00+00:00"
+    }
+  }'
+```
+
+## 🧪 Testing Suite
+
+Execute the test suite inside the container:
+```bash
+docker compose exec app php artisan test packages/leadscaptain/Tests
+```
