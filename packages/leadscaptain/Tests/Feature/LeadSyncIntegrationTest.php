@@ -6,6 +6,7 @@ namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Redis;
 use Leadscaptain\Application\Services\LeadService;
 use Tests\TestCase;
 
@@ -16,8 +17,13 @@ class LeadSyncIntegrationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        try {
+            Redis::flushall();
+        } catch (\Throwable $e) {
+           
+        }
 
-        // Package migrations ko SQLite memory database par migrate karein
+       
         $this->artisan('migrate', [
             '--path' => 'packages/leadscaptain/database/migrations',
             '--realpath' => false,
